@@ -4,6 +4,7 @@
       <el-form
         ref="form"
         :model="formData"
+        :rules="rules"
         label-width="80px"
         label-position="left"
       >
@@ -37,14 +38,14 @@
           />
         </el-form-item>
 
-        <el-form-item label="商品编号" required>
+        <el-form-item label="商品编号" prop="goodsNo">
           <el-input
             disabled
             v-model="formData.goodsNo"
             style="width: 400px !important"
           />
         </el-form-item>
-        <el-form-item label="商品名称" required>
+        <el-form-item label="商品名称" prop="goodsName">
           <el-input
             disabled
             v-model="formData.goodsName"
@@ -52,11 +53,12 @@
           />
         </el-form-item>
 
-        <el-form-item label="标题" required>
+        <el-form-item label="标题" prop="title">
           <el-input
             v-model="formData.title"
             maxlength="32"
             show-word-limit
+            clearable
             style="width: 400px !important"
           >
             <template slot="append">
@@ -69,11 +71,11 @@
           </el-input>
         </el-form-item>
 
-        <el-form-item label="描述" required>
+        <el-form-item label="描述" prop="description">
           <el-input
             v-model="formData.description"
             type="textarea"
-            :rows="10"
+            :rows="5"
             maxlength="200"
             show-word-limit
             style="width: 400px !important"
@@ -85,13 +87,13 @@
           ></el-color-picker>
         </el-form-item>
 
-        <el-form-item label="概念图" required>
+        <el-form-item label="概念图" prop="ideaImg">
           <el-upload
             class="image-uploader"
-            action="https://jsonplaceholder.typicode.com/posts/"
+            action=""
+            accept="image/*"
             :show-file-list="false"
-            :on-success="handleImageSuccess"
-            :before-upload="beforeImageUpload"
+            :http-request="uploadImage"
           >
             <img
               v-if="formData.ideaImg"
@@ -102,6 +104,15 @@
           </el-upload>
         </el-form-item>
 
+        <el-form-item label="顺序" required>
+          <el-input-number
+            v-model="formData.adIndex"
+            controls-position="right"
+            :min="0"
+            :max="10"
+          ></el-input-number>
+        </el-form-item>
+
         <el-form-item label="状态" required>
           <el-radio v-model="formData.status" label="1" border size="medium"
             >上线</el-radio
@@ -110,9 +121,17 @@
             >下线</el-radio
           >
         </el-form-item>
+
+        <el-form-item class="actions">
+          <el-button type="primary" round @click="save">保存</el-button>
+          <el-button type="info" round @click="close">关闭</el-button>
+        </el-form-item>
       </el-form>
 
-      <div class="preview">
+      <div
+        class="preview"
+        :style="{ height: formData.ideaImg ? 'fit-content' : '500px' }"
+      >
         <img
           v-if="formData.ideaImg"
           :src="formData.ideaImg"
@@ -131,21 +150,20 @@
           </p>
         </div>
       </div>
-
-      <div class="actions">
-        <el-button type="primary" round>保存</el-button>
-        <el-button type="info" round @click="close">关闭</el-button>
-      </div>
     </el-card>
   </div>
 </template>
 
 <script>
+import api from "@/api/system";
+import { Message } from "element-ui";
 const Mock = require("mockjs");
+
 export default {
   name: "CreateEditAdvertisement",
   data() {
     return {
+      queryId: this.$route.query.id,
       //商品加载
       goodsLoading: true,
       //已选择的商品
@@ -161,13 +179,34 @@ export default {
         titleColor: "#000000",
         description: "",
         descriptionColor: "#FFFFFF",
-        status: 0,
-        ideaImg:
-          "https://media.istockphoto.com/id/1272710341/ja/%E3%82%B9%E3%83%88%E3%83%83%E3%82%AF%E3%83%95%E3%82%A9%E3%83%88/%E3%82%AB%E3%83%8A%E3%83%80%E3%81%AE%E3%83%AD%E3%83%83%E3%82%AD%E3%83%BC%E5%B1%B1%E8%84%88%E3%81%AB%E5%AF%BE%E3%81%99%E3%82%8B%E7%97%95%E8%B7%A1%E3%81%A8%E7%A9%BA%E3%81%AE%E5%9C%9F%E3%81%AE%E3%83%93%E3%83%BC%E3%83%81.jpg?s=1024x1024&w=is&k=20&c=w4yMXedZKbXXhL3lk8S8IadXeptqWsZyjrEopGmASbU=",
+        adIndex: 0,
+        status: "0",
+        ideaImg: "",
+      },
+      rules: {
+        goodsNo: [
+          { required: true, message: "商品编号不能为空", trigger: "blur" },
+        ],
+        goodsName: [
+          { required: true, message: "商品名称不能为空", trigger: "blur" },
+        ],
+        title: [{ required: true, message: "标题不能为空", trigger: "blur" }],
+        description: [
+          { required: true, message: "描述不能为空", trigger: "blur" },
+        ],
+        ideaImg: [
+          { required: true, message: "概念图不能为空", trigger: "blur" },
+        ],
       },
     };
   },
   methods: {
+    //获取编辑的广告信息
+    getEditInfo() {
+      api.getAdvertisementById(this.queryId).then((resp) => {
+        this.formData = resp.data;
+      });
+    },
     //远程搜索商品列表
     remoteGoodsList() {
       const data = Mock.mock({
@@ -188,16 +227,64 @@ export default {
       this.formData.goodsNo = goods.goodsNo;
       this.formData.goodsName = goods.goodsName;
     },
-    //图片上传前
-    beforeImageUpload(file) {},
-    //图片上传成功
-    handleImageSuccess(file) {},
+    //图片上传
+    uploadImage(data) {
+      const fileData = new FormData();
+      fileData.append("file", data.file);
+      api.uploadImg(fileData).then((resp) => {
+        this.formData.ideaImg = resp.data;
+        Message({
+          message: "上传成功",
+          type: "success",
+          duration: 1000,
+        });
+      });
+    },
     //关闭组件
     close() {
       //调用全局挂载的方法，关闭当前页
       this.$store.dispatch("tagsView/delView", this.$route);
       this.$router.go(-1);
     },
+    //保存
+    save() {
+      this.$refs["form"].validate((flag, field) => {
+        if (flag) {
+          api.advertisementSaveorupdate(this.formData).then((resp) => {
+            if (resp.code === 200) {
+              Message({
+                message: `${this.queryId ? "编辑" : "添加"}成功`,
+                type: "success",
+                duration: 1000,
+              });
+              this.close();
+              this.refreshPrev();
+            }
+          });
+        }
+      });
+    },
+    //刷新调用页面
+    refreshPrev() {
+      this.$store.dispatch("tagsView/delCachedView", this.prevView).then(() => {
+        const { fullPath } = this.prevView;
+        this.$nextTick(() => {
+          this.$router.replace({
+            path: fullPath,
+          });
+        });
+      });
+    },
+  },
+
+  mounted() {
+    if (this.queryId) this.getEditInfo();
+  },
+
+  beforeRouteEnter(to, from, next) {
+    next((vm) => {
+      vm.prevView = from;
+    });
   },
 };
 </script>
@@ -217,8 +304,8 @@ export default {
   font-size: 28px;
   color: #8c939d;
   width: 400px;
-  height: 300px;
-  line-height: 280px;
+  height: 250px;
+  line-height: 250px;
   text-align: center;
 }
 .image {

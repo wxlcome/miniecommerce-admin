@@ -37,6 +37,12 @@ module.exports = {
       errors: true,
     },
     before: require("./mock/mock-server.js"),
+    proxy: {
+      "/oss": {
+        target: process.env.VUE_APP_BASE_API, // oss请求指向服务器
+        changeOrigin: true,
+      },
+    },
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that

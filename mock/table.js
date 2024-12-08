@@ -20,7 +20,7 @@ const data = Mock.mock({
       goodsName: "@word(5, 10)",
       title: "@title(5,10)",
       description: "@sentence(5, 10)",
-      index: "@integer(0, 10)",
+      adIndex: "@integer(0, 10)",
       status: "@integer(0, 1)",
     },
   ],

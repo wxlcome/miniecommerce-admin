@@ -27,6 +27,16 @@
             v-model="tableInfo.page.filter.title"
             maxlength="100"
         /></el-col>
+
+        <el-col :span="5" class="filter-item">
+          <h4 style="width: 80px; text-align: center">描述</h4>
+          <el-input
+            clearable
+            placeholder="请输入内容"
+            v-model="tableInfo.page.filter.description"
+            maxlength="100"
+        /></el-col>
+
         <el-col :span="3" class="filter-item">
           <h4 style="width: 80px; text-align: center">状态</h4>
           <el-select
@@ -52,7 +62,13 @@
       <!-- 表格功能  开始 -->
       <el-row>
         <div class="table-actions">
-          <el-button type="primary" round icon="el-icon-search">搜索</el-button>
+          <el-button
+            type="primary"
+            round
+            icon="el-icon-search"
+            @click="doSearch"
+            >搜索</el-button
+          >
           <el-button
             type="primary"
             round
@@ -129,11 +145,11 @@
     <el-pagination
       background
       layout="total, sizes, prev, pager, next, jumper"
-      @size-change=""
-      @current-change=""
-      :current-page="tableInfo.page.current"
+      @size-change="getPage"
+      @current-change="getPage"
+      :current-page.sync="tableInfo.page.current"
       :page-sizes="[10, 20, 30]"
-      :page-size="tableInfo.page.size"
+      :page-size.sync="tableInfo.page.size"
       :total="tableInfo.page.total"
       style="padding: 20px"
     >
@@ -142,7 +158,7 @@
   </div>
 </template>
 <script>
-import { getList } from "@/api/table";
+import api from "@/api/system";
 export default {
   name: "Advertisement",
   components: {},
@@ -165,12 +181,24 @@ export default {
             { label: "描述", prop: "description" },
             {
               label: "顺序",
-              prop: "index",
+              prop: "adIndex",
               align: "center",
               sortable: true,
               width: "100",
             },
-            { label: "状态", prop: "status", align: "center", width: "100" },
+            {
+              label: "状态",
+              prop: "status",
+              align: "center",
+              sortable: true,
+              width: "100",
+            },
+            {
+              label: "创建时间",
+              prop: "createTime",
+              align: "center",
+              sortable: true,
+            },
             {
               label: "操作",
               prop: "actions",
@@ -208,13 +236,36 @@ export default {
             goodsNo: "",
             goodsName: "",
             title: "",
+            description: "",
             status: "",
           },
+          orders: [
+            {
+              column: "ad_index",
+              asc: true,
+            },
+            {
+              column: "create_time",
+              asc: false,
+            },
+          ],
         },
       },
     };
   },
   methods: {
+    //获取分页
+    getPage() {
+      this.tableLoding = true;
+      api.pageAdvertisement(this.tableInfo.page).then((resp) => {
+        this.tableInfo.page = resp.data;
+        this.tableLoding = false;
+      });
+    },
+    //搜索
+    doSearch() {
+      this.getPage();
+    },
     //创建
     toCreate() {
       this.$router.push({
@@ -238,11 +289,21 @@ export default {
         type: "warning",
       })
         .then(() => {
-          row.status = row.status == 1 ? 0 : 1;
-          this.$message({
-            type: "success",
-            message: `${row.status == 1 ? "上线" : "下线"}成功!`,
-          });
+          const newStatus = row.status == 1 ? 0 : 1;
+          api
+            .advertisementSaveorupdate({
+              id: row.id,
+              status: newStatus,
+            })
+            .then((resp) => {
+              if (resp.code === 200) {
+                row.status = newStatus;
+                this.$message({
+                  type: "success",
+                  message: `${row.status == 1 ? "上线" : "下线"}成功!`,
+                });
+              }
+            });
         })
         .catch(() => {});
     },
@@ -254,21 +315,21 @@ export default {
         type: "warning",
       })
         .then(() => {
-          this.tableInfo.page.records.splice(0, 1);
-          this.$message({
-            type: "success",
-            message: `删除成功!`,
+          api.delteAdvertisementById(row.id).then((resp) => {
+            if (resp.code === 200) {
+              this.$message({
+                type: "success",
+                message: `删除成功!`,
+              });
+              this.getPage();
+            }
           });
         })
         .catch(() => {});
     },
   },
   mounted() {
-    getList().then((resp) => {
-      this.tableInfo.page.total = resp.data.total;
-      this.tableInfo.page.records = resp.data.items;
-      this.tableLoding = false;
-    });
+    this.getPage();
   },
 };
 </script>
