@@ -5,9 +5,35 @@
         ref="form"
         :model="formData"
         :rules="rules"
-        label-width="80px"
+        label-width="100px"
         label-position="left"
       >
+        <el-form-item label="优惠券名称" prop="couponName">
+          <el-input
+            v-model="formData.couponName"
+            maxlength="64"
+            show-word-limit
+            clearable
+            style="width: 400px !important"
+          >
+          </el-input>
+        </el-form-item>
+
+        <el-form-item label="优惠券类型" prop="couponType">
+          <el-select
+            v-model="formData.couponType"
+            style="width: 400px !important"
+          >
+            <el-option
+              v-for="(val, key) in CouponTypeEnum"
+              :key="key"
+              :label="val.key"
+              :value="val.value"
+            >
+            </el-option>
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="搜索商品">
           <el-select
             v-model="formData.goodsId"
@@ -30,7 +56,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="商品id" v-show="false">
+        <el-form-item label="商品id" v-show="false" prop="goodsId">
           <el-input
             disabled
             v-model="formData.goodsId"
@@ -53,63 +79,12 @@
           />
         </el-form-item>
 
-        <el-form-item label="标题" prop="title">
-          <el-input
-            v-model="formData.title"
-            maxlength="32"
-            show-word-limit
-            clearable
-            style="width: 400px !important"
-          >
-            <template slot="append">
-              <el-color-picker
-                v-model="formData.titleColor"
-                @change="(val) => (formData.titleColor = val)"
-                size="mini"
-              ></el-color-picker
-            ></template>
-          </el-input>
-        </el-form-item>
-
-        <el-form-item label="描述" prop="description">
-          <el-input
-            v-model="formData.description"
-            type="textarea"
-            :rows="5"
-            maxlength="200"
-            show-word-limit
-            style="width: 400px !important"
-          />
-          <el-color-picker
-            v-model="formData.descriptionColor"
-            @change="(val) => (formData.descriptionColor = val)"
-            size="mini"
-          ></el-color-picker>
-        </el-form-item>
-
-        <el-form-item label="概念图" prop="ideaImg">
-          <el-upload
-            class="image-uploader"
-            action=""
-            accept="image/*"
-            :show-file-list="false"
-            :http-request="uploadImage"
-          >
-            <img
-              v-if="formData.ideaImg"
-              :src="formData.ideaImg"
-              class="image"
-            />
-            <i v-else class="el-icon-plus image-uploader-icon"></i>
-          </el-upload>
-        </el-form-item>
-
-        <el-form-item label="顺序" required>
+        <el-form-item label="金额" prop="number">
           <el-input-number
-            v-model="formData.adIndex"
-            controls-position="right"
-            :min="0"
-            :max="10"
+            v-model="formData.number"
+            :precision="2"
+            :step="0.1"
+            :max="999"
           ></el-input-number>
         </el-form-item>
 
@@ -131,33 +106,13 @@
         </el-form-item>
 
         <el-form-item class="actions">
-          <el-button type="primary" round @click="save">保存</el-button>
+          <el-button type="primary" round @click="saveback">保存</el-button>
+          <el-button v-if="!queryId" type="primary" round @click="saveContinue"
+            >保存并继续添加</el-button
+          >
           <el-button type="info" round @click="close">关闭</el-button>
         </el-form-item>
       </el-form>
-
-      <div
-        class="preview"
-        :style="{ height: formData.ideaImg ? 'fit-content' : '500px' }"
-      >
-        <img
-          v-if="formData.ideaImg"
-          :src="formData.ideaImg"
-          class="preview-img"
-        />
-        <span class="preview-header">粗略预览图</span>
-        <div class="preview-introduct">
-          <span class="preview-title" :style="{ color: formData.titleColor }">{{
-            formData.title
-          }}</span>
-          <p
-            class="preview-description"
-            :style="{ color: formData.descriptionColor }"
-          >
-            {{ formData.description }}
-          </p>
-        </div>
-      </div>
     </el-card>
   </div>
 </template>
@@ -165,9 +120,13 @@
 <script>
 import api from "@/api/system";
 import { Message } from "element-ui";
-
 const Mock = require("mockjs");
 
+//优惠券类型枚举
+const CouponTypeEnum = {
+  WHOLE: { key: "全场券", value: 1 },
+  SINGLE: { key: "单品券", value: 2 },
+};
 //状态枚举
 const StatusEnum = {
   OFFLINE: { key: "下线", value: 0 },
@@ -175,11 +134,12 @@ const StatusEnum = {
 };
 
 export default {
-  name: "CreateEditAdvertisement",
+  name: "CreateEditCoupon",
   data() {
     return {
-      StatusEnum,
       queryId: this.$route.query.id,
+      CouponTypeEnum,
+      StatusEnum,
       //商品加载
       goodsLoading: true,
       //已选择的商品
@@ -188,38 +148,54 @@ export default {
       goodsList: [],
       //表单数据
       formData: {
+        couponName: "",
+        couponType: "",
         goodsId: "",
         goodsNo: "",
         goodsName: "",
-        title: "",
-        titleColor: "#000000",
-        description: "",
-        descriptionColor: "#FFFFFF",
-        adIndex: 0,
+        number: "",
         status: "",
-        ideaImg: "",
       },
       rules: {
+        couponName: [
+          { required: true, message: "优惠券名称不能为空", trigger: "blur" },
+        ],
+        couponType: [
+          { required: true, message: "优惠券类型不能为空", trigger: "blur" },
+        ],
         goodsNo: [
-          { required: true, message: "商品编号不能为空", trigger: "blur" },
+          {
+            validator: (rule, value, callback) => {
+              if (this.formData.couponType === CouponTypeEnum.SINGLE.value) {
+                if (value == "")
+                  callback(new Error("单品券的商品编号不能为空"));
+              }
+              callback();
+            },
+            trigger: "blur",
+          },
         ],
         goodsName: [
-          { required: true, message: "商品名称不能为空", trigger: "blur" },
+          {
+            validator: (rule, value, callback) => {
+              if (this.formData.couponType === CouponTypeEnum.SINGLE.value) {
+                if (value == "")
+                  callback(new Error("单品券的商品名称不能为空"));
+              }
+              callback();
+            },
+            trigger: "blur",
+          },
         ],
-        title: [{ required: true, message: "标题不能为空", trigger: "blur" }],
-        description: [
-          { required: true, message: "描述不能为空", trigger: "blur" },
-        ],
-        ideaImg: [
-          { required: true, message: "概念图不能为空", trigger: "blur" },
-        ],
+        number: [{ required: true, message: "金额不能为空", trigger: "blur" }],
+        status: [{ required: true, message: "状态不能为空", trigger: "blur" }],
       },
     };
   },
   methods: {
     //获取编辑的广告信息
     getEditInfo() {
-      api.getAdvertisementById(this.queryId).then((resp) => {
+      api.getCouponById(this.queryId).then((resp) => {
         this.formData = resp.data;
       });
     },
@@ -243,19 +219,6 @@ export default {
       this.formData.goodsNo = goods.goodsNo;
       this.formData.goodsName = goods.goodsName;
     },
-    //图片上传
-    uploadImage(data) {
-      const fileData = new FormData();
-      fileData.append("file", data.file);
-      api.uploadImg(fileData).then((resp) => {
-        this.formData.ideaImg = resp.data;
-        Message({
-          message: "上传成功",
-          type: "success",
-          duration: 1000,
-        });
-      });
-    },
     //关闭组件
     close() {
       //调用全局挂载的方法，关闭当前页
@@ -263,32 +226,45 @@ export default {
       this.$router.go(-1);
     },
     //保存
-    save() {
+    save(func) {
       this.$refs["form"].validate((flag, field) => {
         if (flag) {
-          api.advertisementSaveorupdate(this.formData).then((resp) => {
-            if (resp.code === 200) {
-              Message({
-                message: `${this.queryId ? "编辑" : "添加"}成功`,
-                type: "success",
-                duration: 1000,
-              });
-              this.close();
-              this.refreshPrev();
-            }
+          api.couponSaveorupdate(this.formData).then((resp) => {
+            Message({
+              message: `${this.queryId ? "编辑" : "添加"}成功`,
+              type: "success",
+              duration: 1000,
+            });
+            func();
           });
         }
       });
     },
-    //刷新调用页面
-    refreshPrev() {
-      this.$store.dispatch("tagsView/delCachedView", this.prevView).then(() => {
-        const { fullPath } = this.prevView;
-        this.$nextTick(() => {
-          this.$router.replace({
-            path: fullPath,
+    //保存退出
+    saveback() {
+      this.save(() => {
+        this.close();
+        this.refresh((fullPath) => {
+          this.$nextTick(() => {
+            this.$router.replace({
+              path: fullPath,
+            });
           });
         });
+      });
+    },
+    //保存继续添加
+    saveContinue() {
+      this.save(() => {
+        this.$refs["form"].resetFields();
+        this.refresh(() => {});
+      });
+    },
+    //刷新调用页面
+    refresh(func) {
+      this.$store.dispatch("tagsView/delCachedView", this.prevView).then(() => {
+        const { fullPath } = this.prevView;
+        func(fullPath);
       });
     },
   },

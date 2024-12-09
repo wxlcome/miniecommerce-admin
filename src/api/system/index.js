@@ -39,4 +39,35 @@ export default {
       method: "delete",
     });
   },
+
+  //保存或更新优惠券
+  couponSaveorupdate(data) {
+    return request({
+      url: "/web-admin/admin/system/coupon/saveorupdate",
+      method: "post",
+      data,
+    });
+  },
+  //分页查询广告
+  pageCoupon(data) {
+    return request({
+      url: "/web-admin/admin/system/coupon/page",
+      method: "post",
+      data,
+    });
+  },
+  //根据id查询广告
+  getCouponById(id) {
+    return request({
+      url: `/web-admin/admin/system/coupon/${id}`,
+      method: "get",
+    });
+  },
+  //根据id删除广告
+  delteCouponById(id) {
+    return request({
+      url: `/web-admin/admin/system/coupon/${id}`,
+      method: "delete",
+    });
+  },
 };

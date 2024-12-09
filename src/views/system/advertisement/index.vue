@@ -110,8 +110,18 @@
         <template slot-scope="{ row }">
           <!-- 状态列值渲染 开始 -->
           <template v-if="column.prop === 'status'">
-            <el-tag :type="row[column.prop] == 0 ? 'info' : 'success'">
-              {{ row[column.prop] == 0 ? "未上线" : "已上线" }}
+            <el-tag
+              :type="
+                row[column.prop] == StatusEnum.OFFLINE.value
+                  ? 'info'
+                  : 'success'
+              "
+            >
+              {{
+                row[column.prop] == StatusEnum.OFFLINE.value
+                  ? `已${StatusEnum.OFFLINE.key}`
+                  : `已${StatusEnum.ONLINE.key}`
+              }}
             </el-tag>
           </template>
           <!-- 状态列值渲染 结束 -->
@@ -159,11 +169,19 @@
 </template>
 <script>
 import api from "@/api/system";
+
+//状态枚举
+const StatusEnum = {
+  OFFLINE: { key: "下线", value: 0 },
+  ONLINE: { key: "上线", value: 1 },
+};
+
 export default {
   name: "Advertisement",
   components: {},
   data() {
     return {
+      StatusEnum,
       //表格加载
       tableLoding: true,
       //表格数据
@@ -175,10 +193,11 @@ export default {
               label: "商品编号",
               prop: "goodsNo",
               align: "center",
+              width: "310",
             },
             { label: "商品名称", prop: "goodsName", align: "center" },
-            { label: "标题", prop: "title" },
-            { label: "描述", prop: "description" },
+            { label: "广告标题", prop: "title" },
+            { label: "广告描述", prop: "description" },
             {
               label: "顺序",
               prop: "adIndex",
@@ -213,8 +232,12 @@ export default {
                 },
                 {
                   index: 2,
-                  name: (status) => (status == 1 ? "下线" : "上线"),
-                  type: (status) => (status == 1 ? "warning" : "success"),
+                  name: (status) =>
+                    status == StatusEnum.ONLINE.value
+                      ? StatusEnum.OFFLINE.key
+                      : StatusEnum.ONLINE.key,
+                  type: (status) =>
+                    status == StatusEnum.ONLINE.value ? "warning" : "success",
                   execute: (row) => this.handleStatus(row),
                 },
                 {
@@ -283,11 +306,19 @@ export default {
     },
     //上线/下线
     handleStatus(row) {
-      this.$confirm(`确定${row.status == 1 ? "下线" : "上线"}`, "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
+      this.$confirm(
+        `确定${
+          row.status == StatusEnum.ONLINE.value
+            ? StatusEnum.OFFLINE.key
+            : StatusEnum.ONLINE.key
+        }`,
+        "提示",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        }
+      )
         .then(() => {
           const newStatus = row.status == 1 ? 0 : 1;
           api
@@ -300,30 +331,14 @@ export default {
                 row.status = newStatus;
                 this.$message({
                   type: "success",
-                  message: `${row.status == 1 ? "上线" : "下线"}成功!`,
+                  message: `${
+                    row.status == StatusEnum.ONLINE.value
+                      ? StatusEnum.ONLINE.key
+                      : StatusEnum.OFFLINE.key
+                  }成功!`,
                 });
               }
             });
-        })
-        .catch(() => {});
-    },
-    //删除
-    handleDelete(row) {
-      this.$confirm(`确定删除？`, "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          api.delteAdvertisementById(row.id).then((resp) => {
-            if (resp.code === 200) {
-              this.$message({
-                type: "success",
-                message: `删除成功!`,
-              });
-              this.getPage();
-            }
-          });
         })
         .catch(() => {});
     },
