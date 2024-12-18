@@ -56,6 +56,24 @@ export const constantRoutes = [
         name: "Coupon",
         meta: { title: "优惠券" },
       },
+      {
+        path: "express",
+        component: () => import("@/views/system/express/index"),
+        name: "Express",
+        meta: { title: "快递信息" },
+      },
+      {
+        path: "feedback",
+        component: () => import("@/views/system/feedback/index"),
+        name: "Feedback",
+        meta: { title: "反馈" },
+      },
+      {
+        path: "operation",
+        component: () => import("@/views/system/operation/index"),
+        name: "Operation",
+        meta: { title: "活动" },
+      },
     ],
   },
 

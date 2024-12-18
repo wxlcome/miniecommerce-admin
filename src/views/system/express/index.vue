@@ -2,40 +2,44 @@
   <div class="app-container">
     <div>
       <!-- 过滤选项  开始 -->
-      <el-row :gutter="10" class="filter-container">
-        <el-col :span="5" class="filter-item">
-          <h5 style="width: 80px; text-align: center">商品编号</h5>
+      <el-row :gutter="15" class="filter-youcontainer">
+        <el-col :span="6" class="filter-item">
+          <h5 style="width: 100px; text-align: center">快递编号</h5>
           <el-input
             clearable
-            placeholder="请输入商品编号"
-            v-model="tableInfo.page.filter.goodsNo"
+            placeholder="请输入快递编号"
+            v-model="tableInfo.page.filter.expressNo"
             maxlength="100"
         /></el-col>
-        <el-col :span="5" class="filter-item">
-          <h5 style="width: 80px; text-align: center">商品名称</h5>
-          <el-input
+        <el-col :span="4" class="filter-item">
+          <h5 style="width: 80px; text-align: center">快递类型</h5>
+          <el-select
             clearable
-            placeholder="请输入商品名称"
-            v-model="tableInfo.page.filter.goodsName"
-            maxlength="100"
-        /></el-col>
-        <el-col :span="5" class="filter-item">
-          <h5 style="width: 80px; text-align: center">标题</h5>
-          <el-input
-            clearable
-            placeholder="请输入标题"
-            v-model="tableInfo.page.filter.title"
-            maxlength="100"
-        /></el-col>
+            v-model="tableInfo.page.filter.expressType"
+            placeholder="请选择"
+          >
+            <el-option
+              v-for="(val, key) in ExpressTypeEnum"
+              :key="key"
+              :label="val.key"
+              :value="val.value"
+            >
+            </el-option>
+          </el-select>
+        </el-col>
 
-        <el-col :span="5" class="filter-item">
-          <h5 style="width: 80px; text-align: center">描述</h5>
-          <el-input
-            clearable
-            placeholder="请输入内容"
-            v-model="tableInfo.page.filter.description"
-            maxlength="100"
-        /></el-col>
+        <el-col :span="6" class="filter-item">
+          <h5 style="width: 80px; text-align: center">时间</h5>
+          <el-date-picker
+            v-model="tableInfo.page.filter.datePicker"
+            type="datetimerange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            @change="datePickerChange"
+          >
+          </el-date-picker>
+        </el-col>
 
         <el-col :span="3" class="filter-item">
           <h5 style="width: 80px; text-align: center">状态</h5>
@@ -45,13 +49,10 @@
             placeholder="请选择"
           >
             <el-option
-              v-for="item in [
-                { label: '已上线', value: 1 },
-                { label: '未上线', value: 0 },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
+              v-for="(val, key) in StatusEnum"
+              :key="key"
+              :label="val.key"
+              :value="val.value"
             >
             </el-option>
           </el-select>
@@ -68,13 +69,6 @@
             icon="el-icon-search"
             @click="doSearch"
             >搜索</el-button
-          >
-          <el-button
-            type="primary"
-            round
-            icon="el-icon-plus"
-            @click="toCreate()"
-            >添加</el-button
           >
         </div>
       </el-row>
@@ -106,22 +100,24 @@
         :prop="column.prop"
         :width="column.width"
         :fixed="column.prop === 'actions' ? 'right' : ''"
-        show-overflow-tooltip
       >
         <template slot-scope="{ row }">
+          <!-- 快递类型列值渲染 开始 -->
+          <template v-if="column.prop === 'expressType'">
+            {{ getExpressTypeText(row[column.prop]) }}
+          </template>
+          <!-- 快递类型列值渲染 结束 -->
           <!-- 状态列值渲染 开始 -->
-          <template v-if="column.prop === 'status'">
+          <template v-else-if="column.prop === 'status'">
             <el-tag
               :type="
-                row[column.prop] == StatusEnum.OFFLINE.value
-                  ? 'info'
-                  : 'success'
+                row[column.prop] == StatusEnum.NOT.value ? 'primary' : 'success'
               "
             >
               {{
-                row[column.prop] == StatusEnum.OFFLINE.value
-                  ? `已${StatusEnum.OFFLINE.key}`
-                  : `已${StatusEnum.ONLINE.key}`
+                row[column.prop] == StatusEnum.NOT.value
+                  ? `${StatusEnum.NOT.key}`
+                  : `${StatusEnum.GOT.key}`
               }}
             </el-tag>
           </template>
@@ -170,18 +166,25 @@
 </template>
 <script>
 import api from "@/api/system";
+import moment from "moment";
 
+//快递类型枚举
+const ExpressTypeEnum = {
+  BACK: { key: "退货", value: 1 },
+  SEND: { key: "发货", value: 2 },
+};
 //状态枚举
 const StatusEnum = {
-  OFFLINE: { key: "下线", value: 0 },
-  ONLINE: { key: "上线", value: 1 },
+  NOT: { key: "未收货", value: 0 },
+  GOT: { key: "已收货", value: 1 },
 };
 
 export default {
-  name: "Advertisement",
+  name: "Express",
   components: {},
   data() {
     return {
+      ExpressTypeEnum,
       StatusEnum,
       //表格加载
       tableLoding: true,
@@ -191,61 +194,56 @@ export default {
           headerAlign: "center",
           columns: [
             {
-              label: "商品编号",
-              prop: "goodsNo",
+              label: "快递编号",
+              prop: "expressNo",
               align: "center",
-              width: "310",
+              width: 450,
             },
-            { label: "商品名称", prop: "goodsName", align: "center" },
-            { label: "广告标题", prop: "title" },
-            { label: "广告描述", prop: "description" },
             {
-              label: "顺序",
-              prop: "adIndex",
+              label: "快递公司编码",
+              prop: "companyCode",
               align: "center",
-              sortable: true,
-              width: "100",
+            },
+            {
+              label: "快递公司名称",
+              prop: "companyName",
+              align: "center",
+            },
+            {
+              label: "快递类型",
+              prop: "expressType",
+              align: "center",
+            },
+            {
+              label: "发货/收货仓库名称",
+              prop: "warehouseName",
+              align: "center",
             },
             {
               label: "状态",
               prop: "status",
               align: "center",
               sortable: true,
-              width: "100",
+              width: 100,
             },
             {
               label: "创建时间",
               prop: "createTime",
               align: "center",
               sortable: true,
+              width: 300,
             },
             {
               label: "操作",
               prop: "actions",
               align: "center",
-              width: 300,
+              width: 200,
               actions: [
                 {
                   index: 1,
-                  name: () => "编辑",
+                  name: () => "查看详情",
                   type: () => "primary",
-                  execute: (row) => this.toEdit(row),
-                },
-                {
-                  index: 2,
-                  name: (status) =>
-                    status == StatusEnum.ONLINE.value
-                      ? StatusEnum.OFFLINE.key
-                      : StatusEnum.ONLINE.key,
-                  type: (status) =>
-                    status == StatusEnum.ONLINE.value ? "warning" : "success",
-                  execute: (row) => this.handleStatus(row),
-                },
-                {
-                  index: 3,
-                  name: () => "删除",
-                  type: () => "danger",
-                  execute: (row) => this.handleDelete(row),
+                  execute: (row) => this.toDetail(row),
                 },
               ],
             },
@@ -257,17 +255,14 @@ export default {
           total: 0,
           size: 10,
           filter: {
-            goodsNo: "",
-            goodsName: "",
-            title: "",
-            description: "",
+            expressNo: "",
+            expressType: "",
+            startTime: "",
+            endTime: "",
             status: "",
+            datePicker: [],
           },
           orders: [
-            {
-              column: "ad_index",
-              asc: true,
-            },
             {
               column: "create_time",
               asc: false,
@@ -281,67 +276,47 @@ export default {
     //获取分页
     getPage() {
       this.tableLoding = true;
-      api.pageAdvertisement(this.tableInfo.page).then((resp) => {
-        this.tableInfo.page = resp.data;
+      api.pageExpressInfo(this.tableInfo.page).then((resp) => {
+        const { current, records, total, size } = resp.data;
+        this.tableInfo.page.current = current;
+        this.tableInfo.page.records = records;
+        this.tableInfo.page.total = total;
+        this.tableInfo.page.size = size;
         this.tableLoding = false;
       });
+    },
+    //获取快递类型文本
+    getExpressTypeText(status) {
+      for (let key in ExpressTypeEnum)
+        if (ExpressTypeEnum[key].value === status)
+          return ExpressTypeEnum[key].key;
+    },
+    //时间选择器变化
+    datePickerChange(val) {
+      if (val) {
+        this.tableInfo.page.filter.startTime = moment(val[0]).format(
+          "YYYY-MM-DD HH:mm:ss"
+        );
+        this.tableInfo.page.filter.endTime = moment(val[1]).format(
+          "YYYY-MM-DD HH:mm:ss"
+        );
+      } else {
+        this.tableInfo.page.filter.startTime = "";
+        this.tableInfo.page.filter.endTime = "";
+      }
     },
     //搜索
     doSearch() {
       this.getPage();
     },
-    //创建
-    toCreate() {
+    //详情
+    toDetail(row) {
       this.$router.push({
-        path: "/system/advertisement/createAdvertisement",
-      });
-    },
-    //编辑
-    toEdit(row) {
-      this.$router.push({
-        path: "/system/advertisement/editAdvertisement",
+        path: "/system/express/detail",
         query: {
           id: row.id,
         },
       });
-    },
-    //上线/下线
-    handleStatus(row) {
-      this.$confirm(
-        `确定${
-          row.status == StatusEnum.ONLINE.value
-            ? StatusEnum.OFFLINE.key
-            : StatusEnum.ONLINE.key
-        }`,
-        "提示",
-        {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-        }
-      )
-        .then(() => {
-          const newStatus = row.status == 1 ? 0 : 1;
-          api
-            .advertisementSaveorupdate({
-              id: row.id,
-              status: newStatus,
-            })
-            .then((resp) => {
-              if (resp.code === 200) {
-                row.status = newStatus;
-                this.$message({
-                  type: "success",
-                  message: `${
-                    row.status == StatusEnum.ONLINE.value
-                      ? StatusEnum.ONLINE.key
-                      : StatusEnum.OFFLINE.key
-                  }成功!`,
-                });
-              }
-            });
-        })
-        .catch(() => {});
     },
   },
   mounted() {

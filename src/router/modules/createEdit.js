@@ -38,6 +38,39 @@ const createEditRouter = {
       meta: { title: "优惠券-编辑" },
       hidden: true,
     },
+
+    //快递信息
+    {
+      path: "/system/express/detail",
+      component: () => import("@/views/system/express/ExpressDetail"),
+      name: "ExpressDetail",
+      meta: { title: "快递信息-详情" },
+      hidden: true,
+    },
+
+    //反馈
+    {
+      path: "/system/feedback/detail",
+      component: () => import("@/views/system/feedback/FeedbackDetail"),
+      name: "FeedbackDetail",
+      meta: { title: "反馈-详情" },
+      hidden: true,
+    },
+    //活动
+    {
+      path: "/system/operation/createOperation",
+      component: () => import("@/views/system/operation/CreateOrEditOperation"),
+      name: "CreateEditOperation",
+      meta: { title: "活动-添加" },
+      hidden: true,
+    },
+    {
+      path: "/system/operation/editOperation",
+      component: () => import("@/views/system/operation/CreateOrEditOperation"),
+      name: "CreateEditOperation",
+      meta: { title: "活动-编辑" },
+      hidden: true,
+    },
   ],
 };
 

@@ -4,7 +4,7 @@
       <!-- 过滤选项  开始 -->
       <el-row :gutter="15" class="filter-youcontainer">
         <el-col :span="6" class="filter-item">
-          <h4 style="width: 100px; text-align: center">优惠券名称</h4>
+          <h5 style="width: 100px; text-align: center">优惠券名称</h5>
           <el-input
             clearable
             placeholder="请输入优惠券名称"
@@ -12,7 +12,7 @@
             maxlength="100"
         /></el-col>
         <el-col :span="4" class="filter-item">
-          <h4 style="width: 80px; text-align: center">优惠券类型</h4>
+          <h5 style="width: 80px; text-align: center">优惠券类型</h5>
           <el-select
             clearable
             v-model="tableInfo.page.filter.couponType"
@@ -29,7 +29,7 @@
         </el-col>
 
         <el-col :span="5" class="filter-item">
-          <h4 style="width: 80px; text-align: center">金额</h4>
+          <h5 style="width: 80px; text-align: center">金额</h5>
           <el-input-number
             v-model="tableInfo.page.filter.startNumber"
             placeholder="开始金额"
@@ -50,7 +50,7 @@
         </el-col>
 
         <el-col :span="6" class="filter-item">
-          <h4 style="width: 80px; text-align: center">时间</h4>
+          <h5 style="width: 80px; text-align: center">时间</h5>
           <el-date-picker
             v-model="tableInfo.page.filter.datePicker"
             type="datetimerange"
@@ -63,7 +63,7 @@
         </el-col>
 
         <el-col :span="3" class="filter-item">
-          <h4 style="width: 80px; text-align: center">状态</h4>
+          <h5 style="width: 80px; text-align: center">状态</h5>
           <el-select
             clearable
             v-model="tableInfo.page.filter.status"
@@ -332,12 +332,17 @@ export default {
     },
     //时间选择器变化
     datePickerChange(val) {
-      this.tableInfo.page.filter.startTime = moment(val[0]).format(
-        "YYYY-MM-DD HH:mm:ss"
-      );
-      this.tableInfo.page.filter.endTime = moment(val[1]).format(
-        "YYYY-MM-DD HH:mm:ss"
-      );
+      if (val) {
+        this.tableInfo.page.filter.startTime = moment(val[0]).format(
+          "YYYY-MM-DD HH:mm:ss"
+        );
+        this.tableInfo.page.filter.endTime = moment(val[1]).format(
+          "YYYY-MM-DD HH:mm:ss"
+        );
+      } else {
+        this.tableInfo.page.filter.startTime = "";
+        this.tableInfo.page.filter.endTime = "";
+      }
     },
     //搜索
     doSearch() {
